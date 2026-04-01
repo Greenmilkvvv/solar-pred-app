@@ -87,8 +87,3 @@ if __name__ == '__main__':
         pickle.dump(examples, f)
     print("保存成功")
     
-
-
-
-
-

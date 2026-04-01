@@ -1,3 +1,4 @@
+# %%
 import gradio as gr
 import numpy as np
 import torch
@@ -7,9 +8,13 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 
+import pickle
+
 # ========== 导入模型类 ==========
 from NN import LSTMPredictor, GeneratorWithFeatures
 
+
+# %%
 # ========== 配置参数 ==========
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 LOOKBACK = 24                      # 输入窗口长度（24个15分钟 = 6小时）
@@ -179,29 +184,93 @@ def predict_multistep(model, initial_history_power, initial_history_radiation,
     return predictions, future_datetimes
 
 # ========== 解析用户输入 ==========
+# def parse_power_sequence(power_str):
+#     """解析功率序列字符串"""
+#     return [float(x.strip()) for x in power_str.split(',') if x.strip()]
+
+# def parse_radiation_sequence(rad_str):
+#     """
+#     解析辐射数据字符串
+#     格式：每行一个时间步，逗号分隔四个值
+#     例如：500,400,100,600
+#          520,410,110,620
+#     """
+#     history_radiation = []
+#     for line in rad_str.strip().split('\n'):
+#         if not line.strip():
+#             continue
+#         vals = [float(x.strip()) for x in line.split(',') if x.strip()]
+#         if len(vals) >= 4:
+#             history_radiation.append({
+#                 'shortwave_radiation (W/m2)': vals[0],
+#                 'direct_radiation (W/m2)': vals[1],
+#                 'diffuse_radiation (W/m2)': vals[2],
+#                 'direct_normal_irradiance (W/m2)': vals[3]
+#             })
+#     return history_radiation
+
 def parse_power_sequence(power_str):
-    """解析功率序列字符串"""
-    return [float(x.strip()) for x in power_str.split(',') if x.strip()]
+    """
+    解析功率序列字符串，增强容错性
+    """
+    if not power_str or not power_str.strip():
+        return []
+    
+    # 清理字符串：去除首尾空格，将中文逗号替换为英文逗号
+    cleaned = power_str.strip()
+    cleaned = cleaned.replace('，', ',')  # 中文逗号转英文
+    
+    # 分割并过滤空值
+    parts = [x.strip() for x in cleaned.split(',') if x.strip()]
+    
+    # 转换为浮点数
+    result = []
+    for part in parts:
+        try:
+            result.append(float(part))
+        except ValueError:
+            print(f"警告：无法解析 '{part}'，已跳过")
+            continue
+    
+    return result
+
 
 def parse_radiation_sequence(rad_str):
     """
-    解析辐射数据字符串
+    解析辐射数据字符串，增强容错性
     格式：每行一个时间步，逗号分隔四个值
-    例如：500,400,100,600
-         520,410,110,620
     """
+    if not rad_str or not rad_str.strip():
+        return []
+    
     history_radiation = []
-    for line in rad_str.strip().split('\n'):
-        if not line.strip():
+    
+    # 按行分割
+    lines = rad_str.strip().split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
             continue
-        vals = [float(x.strip()) for x in line.split(',') if x.strip()]
+        
+        # 清理：中文逗号转英文
+        line = line.replace('，', ',')
+        
+        # 分割
+        vals = [x.strip() for x in line.split(',') if x.strip()]
+        
         if len(vals) >= 4:
-            history_radiation.append({
-                'shortwave_radiation (W/m2)': vals[0],
-                'direct_radiation (W/m2)': vals[1],
-                'diffuse_radiation (W/m2)': vals[2],
-                'direct_normal_irradiance (W/m2)': vals[3]
-            })
+            try:
+                history_radiation.append({
+                    'shortwave_radiation (W/m2)': float(vals[0]),
+                    'direct_radiation (W/m2)': float(vals[1]),
+                    'diffuse_radiation (W/m2)': float(vals[2]),
+                    'direct_normal_irradiance (W/m2)': float(vals[3])
+                })
+            except ValueError as e:
+                print(f"警告：解析辐射数据失败 '{line}': {e}")
+                continue
+    
     return history_radiation
 
 # ========== 绘图函数 ==========
@@ -301,6 +370,19 @@ def predict_with_ui(start_date_str, start_hour, start_minute,
         traceback.print_exc()
         return f"预测出错：{str(e)}", None
 
+
+
+# %%
+# 导入 pickle 测试用例
+import pickle
+with open('examples.pkl', 'rb') as f:
+    examples = pickle.load(f)
+
+pred_steps = 12
+examples.append(pred_steps)
+
+
+# %%
 # ========== 构建 Gradio 界面 ==========
 def create_demo():
     with gr.Blocks(title="光储充微电网负荷预测", theme=gr.themes.Soft()) as demo:
@@ -350,15 +432,19 @@ def create_demo():
                 gr.Markdown("### 📋 示例数据")
                 
                 # 示例
-                example_power = "0.0, 5.2, 12.3, 18.5, 25.6, 32.1, 38.7, 45.2, 52.1, 58.2, 65.5, 72.3, 68.7, 62.8, 55.3, 48.5, 42.3, 35.2, 28.4, 22.5, 15.2, 8.7, 3.2, 0.0"
-                example_radiation = "0,0,0,0\n50,40,10,60\n150,120,30,180\n250,200,50,300\n350,280,70,420\n450,360,90,540\n550,440,110,660\n650,520,130,780\n750,600,150,900\n850,680,170,1020\n900,720,180,1080\n850,680,170,1020\n750,600,150,900\n650,520,130,780\n550,440,110,660\n450,360,90,540\n350,280,70,420\n250,200,50,300\n150,120,30,180\n50,40,10,60\n0,0,0,0\n0,0,0,0\n0,0,0,0\n0,0,0,0"
+                # example_power = "0.0, 5.2, 12.3, 18.5, 25.6, 32.1, 38.7, 45.2, 52.1, 58.2, 65.5, 72.3, 68.7, 62.8, 55.3, 48.5, 42.3, 35.2, 28.4, 22.5, 15.2, 8.7, 3.2, 0.0"
+                # example_radiation = "0,0,0,0\n50,40,10,60\n150,120,30,180\n250,200,50,300\n350,280,70,420\n450,360,90,540\n550,440,110,660\n650,520,130,780\n750,600,150,900\n850,680,170,1020\n900,720,180,1080\n850,680,170,1020\n750,600,150,900\n650,520,130,780\n550,440,110,660\n450,360,90,540\n350,280,70,420\n250,200,50,300\n150,120,30,180\n50,40,10,60\n0,0,0,0\n0,0,0,0\n0,0,0,0\n0,0,0,0"
+
                 
                 gr.Examples(
-                    examples=[
-                        ["2024-01-15", 8, 0, example_power, example_radiation, 12],
-                    ],
+                    examples= [ 
+                        examples
+                    ], 
+                    # examples=[
+                    #     ["2024-01-15", 8, 0, example_power, example_radiation, 12],
+                    # ],
                     inputs=[start_date, start_hour, start_minute, power_history, radiation_history, n_steps_input],
-                    label="点击加载示例（日出后上升场景）"
+                    label="点击加载示例"
                 )
                 
             with gr.Column(scale=2):
@@ -373,6 +459,11 @@ def create_demo():
     
     return demo
 
+
+
+# %%
 if __name__ == "__main__":
     demo = create_demo()
     demo.launch(share=True)
+
+
