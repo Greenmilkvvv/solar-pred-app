@@ -1,3 +1,1 @@
-# solar_pred_app
-
-nothing.
+# 基于 `Gradio` 的前端搭建和模型展示
