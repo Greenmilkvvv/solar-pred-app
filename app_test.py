@@ -4,7 +4,12 @@ import numpy as np
 import torch
 import joblib
 from datetime import datetime, timedelta
+
 import matplotlib.pyplot as plt
+plt.rcParams['font.family'] = ['Times New Roman', 'SimSun']  # 英文字体优先，中文回退到宋体
+plt.rcParams['mathtext.fontset'] = 'stix'  # 数学公式字体，与Times风格匹配
+plt.rcParams['axes.unicode_minus'] = False # 正常显示负号
+
 import matplotlib
 matplotlib.use('Agg')
 
@@ -254,30 +259,32 @@ def plot_predictions(history_power, predictions, start_datetime, future_datetime
     fig, ax = plt.subplots(figsize=(12, 6))
     
     # 历史数据时间轴
-    hist_times = [start_datetime + timedelta(minutes=i * STEP_MINUTES) 
-                  for i in range(len(history_power))]
-    hist_hours = [t.hour + t.minute/60 for t in hist_times]
+    # hist_times = [start_datetime + timedelta(minutes=i * STEP_MINUTES) 
+    #               for i in range(len(history_power))]
+    # hist_hours = [t.hour + t.minute/60 for t in hist_times]
+    hist_index = np.arange(len(history_power))
     
     # 预测数据时间轴
-    pred_hours = [t.hour + t.minute/60 for t in future_datetimes]
+    # pred_hours = [t.hour + t.minute/60 for t in future_datetimes]
+    pred_index = np.arange(len(history_power), len(history_power) + len(predictions))
     
     # 绘图
-    ax.plot(hist_hours, history_power, 'b-', label='历史数据', linewidth=2, marker='o', markersize=3)
-    ax.plot(pred_hours, predictions, 'r--', label='预测值', linewidth=2, marker='s', markersize=4)
+    ax.plot(hist_index, history_power, 'b-', label='历史数据', linewidth=2, marker='o', markersize=3)
+    ax.plot(pred_index, predictions, 'r--', label='预测值', linewidth=2, marker='s', markersize=4)
     
     # 分界线
-    split_hour = hist_hours[-1]
+    split_hour = hist_index[-1]
     ax.axvline(x=split_hour, color='gray', linestyle=':', alpha=0.7)
     
-    ax.set_xlabel('时间 (小时)')
+    ax.set_xlabel('样本')
     ax.set_ylabel('功率 (kW)')
     ax.set_title('光储充微电网负荷预测结果')
     ax.legend()
     ax.grid(True, alpha=0.3)
     
     # 设置x轴刻度
-    all_hours = hist_hours + pred_hours
-    ax.set_xticks(np.arange(int(min(all_hours)), int(max(all_hours)) + 1, 2))
+    # all_hours = hist_hours + pred_hours
+    # ax.set_xticks(np.arange(int(min(all_hours)), int(max(all_hours)) + 1, 2))
     
     return fig
 
@@ -314,8 +321,8 @@ def predict_with_ui(start_date_str, start_hour, start_minute,
             return f"错误：历史辐射数据不足！需要至少 {LOOKBACK} 个时间步，当前 {len(history_radiation)} 个。", None
         
         # 只取前 LOOKBACK 个
-        history_power = history_power[:LOOKBACK]
-        history_radiation = history_radiation[:LOOKBACK]
+        history_power = history_power
+        history_radiation = history_radiation
         
         # 4. 加载模型
         model, scaler = load_model_and_scaler('best_generator.pth', 'simple_scaler_1.pkl')

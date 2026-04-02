@@ -17,7 +17,7 @@ VARIABLE = [
     'power', 
     'shortwave_radiation (W/m2)', 'direct_radiation (W/m2)', 'diffuse_radiation (W/m2)', 'direct_normal_irradiance (W/m2)'
 ]
-LENGTH = 300
+LENGTH = 250
 
 
 # %%
@@ -42,14 +42,6 @@ def prepare_example(DATA_PATH, TEST_SIZE, VARIABLE, LENGTH):
     radiation_data = df[feature_cols].values.astype(np.float32)
 
     return start_datetime, power_data, radiation_data
-
-
-
-# start_datetime, power_data, radiation_data = prepare_example(DATA_PATH, TEST_SIZE, VARIABLE, LENGTH)
-
-# radiation_data = radiation_data.tolist()
-# radiation_data = [', '.join(lst) for lst in radiation_data]
-# radiation_data
 
 
 # %%
