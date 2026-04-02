@@ -1,0 +1,7 @@
+gradio==6.10.0
+joblib==1.2.0
+matplotlib==3.7.2
+numpy==2.4.4
+pandas==2.0.3
+scikit_learn==1.2.2
+torch==2.1.0+cu121
