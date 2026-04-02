@@ -1,5 +1,7 @@
 # 基于 `Gradio` 的 Web 应用搭建
 
+`Gradio` 是 Hugging Face 推出的快速部署 ML 模型的工具
+
 ## 项目结构
 
 ### 本体
