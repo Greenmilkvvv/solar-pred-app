@@ -132,7 +132,7 @@ def predict_single_step(model, input_seq, scaler):
         pred_scaled = model(input_tensor).cpu().numpy()
     
     # 反标准化（MinMaxScaler）
-    pred_orig = pred_scaled[0, 0] * scaler.scale_[0] + scaler.min_[0]
+    pred_orig = pred_scaled[0, 0] / scaler.scale_[0] + scaler.min_[0]
     return float(pred_orig)
 
 # ========== 多步预测（递归）==========
@@ -253,6 +253,8 @@ def parse_radiation_sequence(rad_str):
     
     return history_radiation
 
+
+# %%
 # ========== 绘图函数 ==========
 def plot_predictions(history_power, predictions, start_datetime, future_datetimes):
     """绘制预测结果"""
@@ -362,6 +364,8 @@ with open('examples.pkl', 'rb') as f:
 
 pred_steps = 12
 examples.append(pred_steps)
+
+# parse_power_sequence(examples[3])
 
 
 # %%
