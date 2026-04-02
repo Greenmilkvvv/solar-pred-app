@@ -17,7 +17,7 @@ VARIABLE = [
     'power', 
     'shortwave_radiation (W/m2)', 'direct_radiation (W/m2)', 'diffuse_radiation (W/m2)', 'direct_normal_irradiance (W/m2)'
 ]
-LENGTH = 250
+LENGTH = 225
 
 
 # %%
